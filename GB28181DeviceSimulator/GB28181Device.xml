@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<XMLConfig>
+    <ServerSIPID>34020000002000000001</ServerSIPID>			<!--服务器SIP ID-->
+    <ServerDomainID>3402000000</ServerDomainID>					<!--服务器域-->
+    <ServerIP>192.168.0.88</ServerIP>								<!--服务器IP地址-->
+    <ServerPort>15060</ServerPort>											<!--服务器SIP端口-->
+    <AccessPwd>87654321</AccessPwd>											<!--接入密码-->
+    <DeviceSIPID>11010000001320000001</DeviceSIPID>			<!--设备ID,要模拟的设备ID将在此ID上递增-->
+    <RegisterPeriod>3600</RegisterPeriod>								<!--注册周期-->
+    <HeartbeatPeriod>60</HeartbeatPeriod>								<!--心跳周期-->
+    <MaxHeartbeatCount>3</MaxHeartbeatCount>						<!--最大心跳次数-->
+    <SipProtocol>UDP</SipProtocol>											<!--注册协议 TCP or UDP-->
+    <DeviceNum>20</DeviceNum>													<!--要模拟的设备数量-->
+    <FilePath>EasyDarwin.mp4</FilePath>									<!--媒体文件-->
+</XMLConfig>
