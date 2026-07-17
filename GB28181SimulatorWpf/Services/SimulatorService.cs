@@ -143,16 +143,21 @@ namespace GB28181SimulatorWpf.Services
 
                     var chInfo = new GB28181ChannelInfo
                     {
-                        channelID   = channelID,
-                        name        = $"CH{j + 1:D2}",
-                        manufacturer= "TSINGSEE",
-                        model       = "EasyGBD",
-                        owner       = "owner",
-                        civilCode   = "civilcode",
-                        address     = "",
-                        parentID    = deviceID,
-                        registerWay = 1,
-                        status      = 1,
+                        channelID    = channelID,
+                        name         = $"CH{j + 1:D2}",
+                        manufacturer = "TSINGSEE",
+                        model        = "EasyGBD",
+                        owner        = "owner",
+                        civilCode    = "civilcode",
+                        address      = "",
+                        parental     = 0,          // no sub-channels
+                        parentID     = deviceID,
+                        secrecy      = 0,          // not confidential
+                        registerWay  = 1,
+                        status       = 1,          // 1=ON, 0=OFF — now at correct offset
+                        eventStr     = "",         // empty event field
+                        longitude    = 0f,
+                        latitude     = 0f,
                     };
 
                     EasyGBDNative.AddChannel(handle, config.ServerSipID, ref chInfo, false);

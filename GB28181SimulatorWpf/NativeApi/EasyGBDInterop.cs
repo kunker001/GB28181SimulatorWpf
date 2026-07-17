@@ -77,35 +77,65 @@ namespace GB28181SimulatorWpf.NativeApi
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct GB28181ChannelInfo
     {
+        // char channelID[32]
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
         public string channelID;
 
+        // char name[64]
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
         public string name;
 
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+        // char manufacturer[32]  ← FIX: was 64, must be 32
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
         public string manufacturer;
 
+        // char model[32]
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
         public string model;
 
+        // char owner[32]
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
         public string owner;
 
+        // char civilCode[32]
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
         public string civilCode;
 
+        // char address[64]
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
         public string address;
 
+        // int parental  ← NEW: was missing, caused all following fields to be shifted -4 bytes
+        public int parental;
+
+        // char parentID[32]
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
         public string parentID;
 
-        public int    registerWay;
+        // int secrecy  ← NEW: was missing, shifted status by another -4 bytes
+        public int secrecy;
 
-        /// <summary>1 = Online</summary>
-        public int    status;
+        // int registerWay
+        public int registerWay;
+
+        /// <summary>
+        /// Channel online status.
+        /// 1 = ON (online), 0 = OFF (offline)
+        /// GB28181 Catalog XML will render as "ON" or "OFF".
+        /// </summary>
+        public int status;
+
+        // char event[64]  ← NEW: was missing
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+        public string eventStr;
+
+        // float longitude  ← NEW: was missing
+        public float longitude;
+
+        // float latitude  ← NEW: was missing
+        public float latitude;
     }
+
 
     // ============================================================
     //  Callback delegate
