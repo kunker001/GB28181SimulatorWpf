@@ -1,0 +1,39 @@
+# Build outputs
+bin/
+obj/
+x64/
+x86/
+Debug/
+Release/
+
+# VS artifacts
+.vs/
+*.user
+*.suo
+*.ncb
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+*.aps
+ipch/
+
+# C# / .NET
+*.dll.meta
+*.exe.meta
+[Pp]ublish/
+
+# C++ intermediate files
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.idb
+*.tlog/
+*.lastbuildstate
+
+# OS
+Thumbs.db
+.DS_Store

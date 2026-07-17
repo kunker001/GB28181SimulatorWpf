@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>GB28181SimulatorWpf</AssemblyName>
+    <RootNamespace>GB28181SimulatorWpf</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Copy native DLLs to output directory -->
+  <ItemGroup>
+    <Content Include="..\GB28181DeviceSimulator\libEasyGBD.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>libEasyGBD.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\libEasyStreamClient.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>libEasyStreamClient.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\libEasyAACEncoder.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>libEasyAACEncoder.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\libeasyrtmp.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>libeasyrtmp.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\Logger.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Logger.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\avcodec-58.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>avcodec-58.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\avformat-58.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>avformat-58.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\avutil-56.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>avutil-56.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\swresample-3.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>swresample-3.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\swscale-5.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>swscale-5.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\avdevice-58.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>avdevice-58.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\avfilter-7.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>avfilter-7.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\postproc-55.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>postproc-55.dll</Link>
+    </Content>
+    <Content Include="..\GB28181DeviceSimulator\concrt140.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>concrt140.dll</Link>
+    </Content>
+  </ItemGroup>
+
+</Project>
