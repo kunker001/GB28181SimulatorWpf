@@ -161,7 +161,7 @@ namespace GB28181SimulatorWpf.NativeApi
     //  P/Invoke declarations for libEasyGBD.dll
     // ============================================================
 
-    public static class EasyGBDNative
+    public static partial class EasyGBDNative
     {
         private const string DllName = "libEasyGBD";
 

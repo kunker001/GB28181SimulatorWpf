@@ -40,6 +40,13 @@ namespace GB28181SimulatorWpf.Services
         // One callback delegate per device (GC protection)
         private readonly List<GB28181ClientCallback> _callbacks = new();
 
+        // Key = MediaSource URL, Value = shared StreamHub for that URL
+        // One hub serves all channels pointing to the same source.
+        private readonly Dictionary<string, StreamHub> _streamHubs = new();
+
+        // Key = "deviceIndex:channelID" → the URL it is using (for StopAudioVideo lookup)
+        private readonly Dictionary<string, string> _channelUrlMap = new();
+
         private AppConfig? _config;
 
         // --------------------------------------------------------
@@ -190,6 +197,14 @@ namespace GB28181SimulatorWpf.Services
             // Cleanup handles after a brief delay to let DLL flush
             Task.Delay(500).ContinueWith(_ =>
             {
+                // Stop all stream hubs first
+                lock (_streamHubs)
+                {
+                    foreach (var hub in _streamHubs.Values) hub.Dispose();
+                    _streamHubs.Clear();
+                    _channelUrlMap.Clear();
+                }
+
                 for (int i = 0; i < _handles.Count; i++)
                 {
                     if (_handles[i] != IntPtr.Zero)
@@ -250,14 +265,58 @@ namespace GB28181SimulatorWpf.Services
                         break;
 
                     case GB28181CallbackType.StartAudioVideo:
+                    {
                         status.StreamingChannels++;
                         AppendLog("INFO", status.DeviceID, $"开始推流 ▶ 通道={channelID}");
+
+                        if (ext != IntPtr.Zero && _config != null
+                            && deviceIndex < _handles.Count
+                            && _handles[deviceIndex] != IntPtr.Zero)
+                        {
+                            string chanKey = $"{deviceIndex}:{channelID}";
+                            string url     = _config.MediaSource;
+
+                            lock (_streamHubs)
+                            {
+                                // Get or create the hub for this URL
+                                if (!_streamHubs.TryGetValue(url, out var hub))
+                                {
+                                    hub = new StreamHub(url,
+                                        msg => AppendLog("INFO", status.DeviceID, $"[Hub] {msg}"));
+                                    _streamHubs[url] = hub;
+                                }
+
+                                hub.AddPusher(_handles[deviceIndex], ext);
+                                _channelUrlMap[chanKey] = url;
+                            }
+                        }
                         break;
+                    }
 
                     case GB28181CallbackType.StopAudioVideo:
+                    {
                         if (status.StreamingChannels > 0) status.StreamingChannels--;
                         AppendLog("INFO", status.DeviceID, $"停止推流 ■ 通道={channelID}");
+
+                        string chanKey = $"{deviceIndex}:{channelID}";
+                        lock (_streamHubs)
+                        {
+                            if (_channelUrlMap.TryGetValue(chanKey, out string? url))
+                            {
+                                _channelUrlMap.Remove(chanKey);
+                                if (_streamHubs.TryGetValue(url, out var hub))
+                                {
+                                    hub.RemovePusher(ext);
+                                    if (hub.IsEmpty)
+                                    {
+                                        hub.Dispose();
+                                        _streamHubs.Remove(url);
+                                    }
+                                }
+                            }
+                        }
                         break;
+                    }
 
                     default:
                         AppendLog("INFO", status.DeviceID, $"事件={type}, 服务器={serverID}, 通道={channelID}");
