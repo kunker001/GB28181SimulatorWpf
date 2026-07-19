@@ -128,7 +128,7 @@ namespace GB28181SimulatorWpf.Services
                 var gch = GCHandle.Alloc(cb);
                 _gcHandles.Add(gch);
 
-                int ret = EasyGBDNative.Create(out IntPtr handle, IntPtr.Zero, cb, IntPtr.Zero);
+                int ret = EasyGBDNative.Create(out IntPtr handle, IntPtr.Zero, cb, new IntPtr(deviceIndex));
                 if (ret != 0 || handle == IntPtr.Zero)
                 {
                     AppendLog("ERROR", deviceID, $"libGB28181Client_Create 失败, 返回值={ret}");
@@ -177,47 +177,94 @@ namespace GB28181SimulatorWpf.Services
             }
         }
 
-        public void Stop()
+        public async Task StopAsync()
         {
             if (!IsRunning) return;
             IsRunning = false;
 
+            // Run native stops in a background task to prevent UI freeze
+            await Task.Run(() =>
+            {
+                for (int i = 0; i < _handles.Count; i++)
+                {
+                    if (_handles[i] == IntPtr.Zero) continue;
+
+                    IntPtr handle = _handles[i];
+                    EasyGBDNative.Stop(handle);
+
+                    string devID = i < Devices.Count ? Devices[i].DeviceID : $"Device[{i}]";
+                    AppendLog("INFO", devID, "设备已停止");
+
+                    if (i < Devices.Count)
+                    {
+                        var status = Devices[i];
+                        if (System.Windows.Application.Current != null)
+                        {
+                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                status.State = DeviceRegState.Idle;
+                            });
+                        }
+                        else
+                        {
+                            status.State = DeviceRegState.Idle;
+                        }
+                    }
+                }
+            });
+
+            // Cleanup handles after a brief delay to let DLL flush
+            await Task.Delay(500);
+
+            lock (_streamHubs)
+            {
+                foreach (var hub in _streamHubs.Values) hub.Dispose();
+                _streamHubs.Clear();
+                _channelUrlMap.Clear();
+            }
+
+            for (int i = 0; i < _handles.Count; i++)
+            {
+                if (_handles[i] != IntPtr.Zero)
+                {
+                    IntPtr h = _handles[i];
+                    EasyGBDNative.Release(ref h);
+                }
+            }
+            _handles.Clear();
+            foreach (var gch in _gcHandles) gch.Free();
+            _gcHandles.Clear();
+            _callbacks.Clear();
+        }
+
+        private void StopSynchronous()
+        {
+            IsRunning = false;
             for (int i = 0; i < _handles.Count; i++)
             {
                 if (_handles[i] == IntPtr.Zero) continue;
                 EasyGBDNative.Stop(_handles[i]);
-
-                string devID = i < Devices.Count ? Devices[i].DeviceID : $"Device[{i}]";
-                AppendLog("INFO", devID, "设备已停止");
-
-                if (i < Devices.Count)
-                    Devices[i].State = DeviceRegState.Idle;
             }
 
-            // Cleanup handles after a brief delay to let DLL flush
-            Task.Delay(500).ContinueWith(_ =>
+            lock (_streamHubs)
             {
-                // Stop all stream hubs first
-                lock (_streamHubs)
-                {
-                    foreach (var hub in _streamHubs.Values) hub.Dispose();
-                    _streamHubs.Clear();
-                    _channelUrlMap.Clear();
-                }
+                foreach (var hub in _streamHubs.Values) hub.Dispose();
+                _streamHubs.Clear();
+                _channelUrlMap.Clear();
+            }
 
-                for (int i = 0; i < _handles.Count; i++)
+            for (int i = 0; i < _handles.Count; i++)
+            {
+                if (_handles[i] != IntPtr.Zero)
                 {
-                    if (_handles[i] != IntPtr.Zero)
-                    {
-                        IntPtr h = _handles[i];
-                        EasyGBDNative.Release(ref h);
-                    }
+                    IntPtr h = _handles[i];
+                    EasyGBDNative.Release(ref h);
                 }
-                _handles.Clear();
-                foreach (var gch in _gcHandles) gch.Free();
-                _gcHandles.Clear();
-                _callbacks.Clear();
-            });
+            }
+            _handles.Clear();
+            foreach (var gch in _gcHandles) gch.Free();
+            _gcHandles.Clear();
+            _callbacks.Clear();
         }
 
         // --------------------------------------------------------
@@ -228,8 +275,9 @@ namespace GB28181SimulatorWpf.Services
         {
             return (userptr, type, serverID, channelID, data, size, startTime, endTime, ext) =>
             {
-                if (deviceIndex >= Devices.Count) return 0;
-                var status = Devices[deviceIndex];
+                int index = userptr.ToInt32();
+                if (index < 0 || index >= Devices.Count) index = deviceIndex;
+                var status = Devices[index];
 
                 switch (type)
                 {
@@ -270,10 +318,10 @@ namespace GB28181SimulatorWpf.Services
                         AppendLog("INFO", status.DeviceID, $"开始推流 ▶ 通道={channelID}");
 
                         if (ext != IntPtr.Zero && _config != null
-                            && deviceIndex < _handles.Count
-                            && _handles[deviceIndex] != IntPtr.Zero)
+                            && index < _handles.Count
+                            && _handles[index] != IntPtr.Zero)
                         {
-                            string chanKey = $"{deviceIndex}:{channelID}";
+                            string chanKey = $"{index}:{channelID}";
                             string url     = _config.MediaSource;
 
                             lock (_streamHubs)
@@ -286,7 +334,7 @@ namespace GB28181SimulatorWpf.Services
                                     _streamHubs[url] = hub;
                                 }
 
-                                hub.AddPusher(_handles[deviceIndex], ext);
+                                hub.AddPusher(_handles[index], ext);
                                 _channelUrlMap[chanKey] = url;
                             }
                         }
@@ -298,7 +346,7 @@ namespace GB28181SimulatorWpf.Services
                         if (status.StreamingChannels > 0) status.StreamingChannels--;
                         AppendLog("INFO", status.DeviceID, $"停止推流 ■ 通道={channelID}");
 
-                        string chanKey = $"{deviceIndex}:{channelID}";
+                        string chanKey = $"{index}:{channelID}";
                         lock (_streamHubs)
                         {
                             if (_channelUrlMap.TryGetValue(chanKey, out string? url))
@@ -393,7 +441,7 @@ namespace GB28181SimulatorWpf.Services
 
         public void Dispose()
         {
-            if (IsRunning) Stop();
+            if (IsRunning) StopSynchronous();
         }
     }
 }

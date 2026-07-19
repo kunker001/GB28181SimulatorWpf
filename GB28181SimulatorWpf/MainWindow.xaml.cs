@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -16,7 +17,7 @@ namespace GB28181SimulatorWpf
         // --------------------------------------------------------
 
         private readonly SimulatorService _service = new();
-        private readonly ObservableCollection<LogEntry> _allLogs    = new();
+        private readonly List<LogEntry> _allLogs = new();
         private readonly ObservableCollection<LogEntry> _shownLogs  = new();
         private readonly DispatcherTimer _uiTimer = new();
 
@@ -50,14 +51,16 @@ namespace GB28181SimulatorWpf
 
         private void UiTimer_Tick(object? sender, EventArgs e)
         {
-            // Drain the log queue
+            // Drain the log queue (limit to max 100 entries per tick to prevent UI hang/freeze)
             bool hasNew = false;
-            while (_service.LogQueue.TryDequeue(out var entry))
+            int dequeuedCount = 0;
+            while (dequeuedCount < 100 && _service.LogQueue.TryDequeue(out var entry))
             {
                 _allLogs.Add(entry);
                 if (PassesFilter(entry))
                     _shownLogs.Add(entry);
                 hasNew = true;
+                dequeuedCount++;
             }
 
             // Auto-scroll log grid unless paused
@@ -67,8 +70,14 @@ namespace GB28181SimulatorWpf
             }
 
             // Keep log list bounded (max 2000 rows)
-            while (_allLogs.Count > 2000)  _allLogs.RemoveAt(0);
-            while (_shownLogs.Count > 2000) _shownLogs.RemoveAt(0);
+            if (_allLogs.Count > 2000)
+            {
+                _allLogs.RemoveRange(0, _allLogs.Count - 2000);
+            }
+            while (_shownLogs.Count > 2000)
+            {
+                _shownLogs.RemoveAt(0);
+            }
 
             // Update header counters
             int online    = _service.Devices.Count(d => d.State == DeviceRegState.Online);
@@ -97,11 +106,11 @@ namespace GB28181SimulatorWpf
             SetRunStatus(true);
         }
 
-        private void BtnStop_Click(object sender, RoutedEventArgs e)
+        private async void BtnStop_Click(object sender, RoutedEventArgs e)
         {
-            _service.Stop();
+            BtnStop.IsEnabled = false; // Disable stop button immediately to prevent double click
+            await _service.StopAsync();
             BtnStart.IsEnabled = true;
-            BtnStop.IsEnabled  = false;
             SetRunStatus(false);
         }
 
@@ -242,8 +251,14 @@ namespace GB28181SimulatorWpf
         protected override void OnClosed(EventArgs e)
         {
             _uiTimer.Stop();
-            _service.Dispose();
+            
+            // Run native disposal in a background task so we don't hang/block on closed
+            System.Threading.Tasks.Task.Run(() => _service.Dispose());
+            
             base.OnClosed(e);
+            
+            // Force exit to guarantee no zombie processes remain alive
+            Environment.Exit(0);
         }
     }
 }
