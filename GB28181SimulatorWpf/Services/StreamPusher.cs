@@ -159,15 +159,28 @@ namespace GB28181SimulatorWpf.Services
             // ── Media info ─────────────────────────────────────
             if (frameType == EasyConstants.MEDIA_INFO_FLAG)
             {
+                if (pBuf == IntPtr.Zero) return;
+                var emi = Marshal.PtrToStructure<EasyMediaInfo>(pBuf);
+
                 var mi = new GB28181MediaInfo
                 {
-                    videoCodec         = fi.codec <= 0xFF ? fi.codec : EasyConstants.VIDEO_CODEC_H264,
-                    videoFps           = fi.fps > 0 ? fi.fps : 25u,
-                    audioCodec         = EasyConstants.AUDIO_CODEC_G711A,
-                    audioSampleRate    = fi.sample_rate > 0 ? fi.sample_rate : 8000u,
-                    audioChannel       = fi.channels > 0 ? fi.channels : 1u,
-                    audioBitsPerSample = fi.bits_per_sample > 0 ? fi.bits_per_sample : 16u,
+                    videoCodec         = emi.videoCodec,
+                    videoFps           = emi.videoFps > 0 ? emi.videoFps : 25u,
+                    audioCodec         = emi.audioCodec,
+                    audioSampleRate    = emi.audioSampleRate,
+                    audioChannel       = emi.audioChannel,
+                    audioBitsPerSample = emi.audioBitsPerSample,
+                    vpsLength          = emi.vpsLength,
+                    spsLength          = emi.spsLength,
+                    ppsLength          = emi.ppsLength,
+                    seiLength          = emi.seiLength,
                 };
+
+                for (int i = 0; i < 256; i++) mi.vps[i] = emi.vps[i];
+                for (int i = 0; i < 256; i++) mi.sps[i] = emi.sps[i];
+                for (int i = 0; i < 128; i++) mi.pps[i] = emi.pps[i];
+                for (int i = 0; i < 128; i++) mi.sei[i] = emi.sei[i];
+
                 EasyGBDNative.SetMediaInfo(entry.DeviceHandle, entry.PusherHandle, &mi);
                 entry.MediaInfoSet = true;
                 return;
@@ -184,10 +197,9 @@ namespace GB28181SimulatorWpf.Services
                 {
                     codecID      = fi.codec,
                     frameSize    = fi.length,
-                    frameType    = fi.type == 1 ? 1u : 0u,
+                    frameType    = fi.type, // Copy fi.type directly (matching C++ code)
                     pBuffer      = pBuf,
-                    rtpTimestamp = fi.pts > 0 ? fi.pts
-                                 : fi.timestamp_sec * 90000u + fi.timestamp_usec / 11u,
+                    rtpTimestamp = 0, // Set to 0 to let the native library compute correct RTP timestamps
                     fps          = fi.fps,
                 };
                 EasyGBDNative.PushFrame(entry.DeviceHandle, entry.PusherHandle,
@@ -202,13 +214,12 @@ namespace GB28181SimulatorWpf.Services
                 {
                     codecID      = fi.codec,
                     frameSize    = fi.length,
-                    frameType    = 0,
+                    frameType    = fi.type,
                     samplerate   = (int)(fi.sample_rate > 0 ? fi.sample_rate : 8000u),
                     channels     = (int)(fi.channels > 0 ? fi.channels : 1u),
                     bitPerSample = (int)(fi.bits_per_sample > 0 ? fi.bits_per_sample : 16u),
                     pBuffer      = pBuf,
-                    rtpTimestamp = fi.pts > 0 ? fi.pts
-                                 : fi.timestamp_sec * 8000u + fi.timestamp_usec / 125u,
+                    rtpTimestamp = 0, // Set to 0 to let the native library compute correct RTP timestamps
                 };
                 EasyGBDNative.PushFrame(entry.DeviceHandle, entry.PusherHandle,
                     EasyConstants.MEDIA_TYPE_AUDIO, &frame, pBuf);

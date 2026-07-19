@@ -33,6 +33,29 @@ namespace GB28181SimulatorWpf.NativeApi
     }
 
     // ============================================================
+    //  EASY_MEDIA_INFO_T  (mirrors EasyTypes.h)
+    // ============================================================
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct EasyMediaInfo
+    {
+        public uint videoCodec;
+        public uint videoFps;
+        public uint audioCodec;
+        public uint audioSampleRate;
+        public uint audioChannel;
+        public uint audioBitsPerSample;
+        public uint vpsLength;
+        public uint spsLength;
+        public uint ppsLength;
+        public uint seiLength;
+        public fixed byte vps[256];
+        public fixed byte sps[256];
+        public fixed byte pps[128];
+        public fixed byte sei[128];
+    }
+
+    // ============================================================
     //  GB28181_MEDIA_INFO_T  (mirrors EasyGB28181DeviceAPI.h)
     // ============================================================
 
